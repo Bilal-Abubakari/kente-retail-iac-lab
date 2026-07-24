@@ -2,6 +2,9 @@
 .terraform.lock.hcl
 *.tfstate
 *.tfstate.*
+# Exception: this one is deliberately checked in -- see monitoring.tf and
+# the README for why. Everything else's state stays out of git as normal.
+!legacy-networking-state/terraform.tfstate
 crash.log
 crash.*.log
 *.tfvars
