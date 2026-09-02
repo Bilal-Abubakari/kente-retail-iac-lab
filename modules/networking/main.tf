@@ -54,7 +54,7 @@ resource "aws_route_table_association" "public" {
 
 resource "aws_security_group" "web" {
   name        = "kente-web-sg-${local.env_label}"
-  description = "Allows SSH (for Ansible) and the app's HTTP port."
+  description = "Allows SSH (for Ansible) and the app HTTP port."
   vpc_id      = aws_vpc.main.id
 
   ingress {
