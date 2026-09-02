@@ -126,6 +126,9 @@ understood the failure rather than flailing at it.
     Who:       AzureAD\<redacted-user>@<redacted-host>
     Created:   2026-09-02 10:51:29 UTC
   ```
+  (The AWS account ID and the operator's username/host are redacted above —
+  `<ACCOUNT_ID>`, `<redacted-user>@<redacted-host>` — since this repo is public.
+  They are not secrets, but there is no reason to publish them.)
   The `ConditionalCheckFailedException` is the lock working exactly as designed:
   the lock row already existed, so DynamoDB's conditional `PutItem` refused a
   second writer.
