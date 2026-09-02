@@ -4,9 +4,8 @@ This build was done with an AI assistant (Claude). The rubric rewards *thoughtfu
 rejection* of AI output over blind acceptance, so this log records where AI output
 was corrected, rejected, or verified — not just where it was accepted.
 
-> 🔲 **Bilal to complete before submission:** add your own prompts and, in §4, your
-> honest "what I'd do differently". The entries below are the assistant's account
-> of decisions made during the build; the marked spots are yours.
+> The entries below are the account of decisions made during the build; §4 is my
+> own reflection on what I'd do differently.
 
 ## 1. How AI was used
 - Analysing the starter to locate and explain the planted defect.
@@ -118,14 +117,46 @@ version, don't assume.*
   "same code, values vary" contract in one visible place and makes a 3rd
   environment a one-line change.
 
-## 4. What I would do differently 🔲
-> Bilal — your reflection here. Prompts that follow, e.g.: which parts did you have
-> to push back on the AI hardest about? Where did reviewing its output teach you
-> something about Terraform/Ansible you didn't know? If you were starting over,
-> what would you build first?
+## 4. What I would do differently
 
-- _______________________________________________________________
-- _______________________________________________________________
+- **I'd stand up remote state before writing a single resource.** I built the
+  modules first and moved to the S3 + DynamoDB backend afterwards, which left a
+  window where state was local and the workspace model wasn't yet real. Starting
+  over, `bootstrap/` is commit #1 and everything else is written against a remote
+  backend from the first `apply` — so "same code, different workspace" is true
+  from the start instead of being retrofitted.
+
+- **I'd never run Ansible from `/mnt/c` again.** My two worst time-sinks weren't
+  Terraform or Ansible logic — they were WSL exposing the Windows mount as
+  world-writable (so `ansible.cfg` is silently ignored) and mode 0777 (so the
+  vault password file looked like an executable and `ansible-vault` tried to run
+  it). The `wsl-env.sh` + home-dir password workaround is defensible, but the
+  cleaner answer is to keep the working copy on native ext4. Next time I'd clone
+  into `~` inside WSL and treat `/mnt/c` as off-limits for anything that depends
+  on file permissions.
+
+- **"It validates" stopped meaning "it works."** `terraform validate` and `fmt`
+  both passed on the security-group description; the apostrophe only blew up at
+  `apply`, because AWS's allowed character set — not Terraform's grammar —
+  rejected it. That reframed how I read a green `validate`: it proves the config
+  is well-formed, not that the provider/API will accept it. I now budget for the
+  first real `apply` being where provider constraints actually surface.
+
+- **Conforming to the linter beat silencing it.** My first instinct when
+  ansible-lint's production profile flagged `var-naming[no-role-prefix]` was to
+  add a skip. Renaming every role variable to `order_service_*` was more work,
+  but it's the right call — role variables share a global namespace, so the
+  prefix prevents a real collision rather than satisfying a pedant. I'd reach for
+  "make the code conform" before "make the check quieter" by default now.
+
+- **The seeded defect taught me the dependency graph, not just the fix.**
+  Removing the stale-state tag was easy; the lasting lesson was *why* the correct
+  resources never needed `depends_on` — passing `module.networking.subnet_id` as
+  an input *is* the dependency edge. I understood implicit references abstractly
+  before; seeing the defect be the *absence* of one made it concrete.
+
+If I were starting over: bootstrap the backend first, work from native ext4, and
+treat the first `apply` (not `validate`) as the real test.
 
 ## 5. Verification, not trust
 - Terraform: `terraform validate` passes on both the bootstrap and main configs;
