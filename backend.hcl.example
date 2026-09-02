@@ -1,0 +1,10 @@
+# Copy to backend.hcl and fill in the values printed by `bootstrap` (terraform
+# output backend_block), then:  terraform init -backend-config=backend.hcl
+#
+# backend.hcl itself is gitignored: the bucket name carries the AWS account ID,
+# which is kept out of committed files. The values here are not secret, but
+# pinning them per-machine keeps the committed HCL account-agnostic.
+
+bucket         = "kente-retail-tfstate-000000000000"
+region         = "eu-west-1"
+dynamodb_table = "kente-retail-tflock"

@@ -1,0 +1,7 @@
+# The bootstrap keeps its state local by necessity (see README). Never commit it.
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
