@@ -4,10 +4,10 @@
 # environment without copy-pasting playbook logic" the spec asks for: same role,
 # different group_vars.
 
-env_name: staging
-app_port: 8080 # must match the Terraform app_port variable for this workspace
+order_service_env_name: staging
+order_service_app_port: 8080 # must match the Terraform app_port for this workspace
 
-db_host: staging-db.internal.kente.local
-db_name: kente_orders_staging
-db_user: kente_staging
-db_password: "{{ vault_db_password }}"
+order_service_db_host: staging-db.internal.kente.local
+order_service_db_name: kente_orders_staging
+order_service_db_user: kente_staging
+order_service_db_password: "{{ vault_db_password }}"

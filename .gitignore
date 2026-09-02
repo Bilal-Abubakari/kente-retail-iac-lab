@@ -35,6 +35,8 @@ kente_lab
 kente_lab.pem
 
 # Ansible Vault password file — the key that decrypts the vault. NEVER commit.
+# The real one lives OUTSIDE the repo at ~/.kente_vault_pass (WSL home); these
+# patterns are belt-and-braces in case one is ever created inside the tree.
 .vault_pass
 .vault-pass
 ansible/.vault_pass

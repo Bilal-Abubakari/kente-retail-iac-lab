@@ -8,7 +8,8 @@ ansible_ssh_private_key_file: "~/.ssh/kente_lab"
 ansible_python_interpreter: /usr/bin/python3
 
 # Where the order-service is laid down. Same layout in every environment.
-app_user: kente
-app_group: kente
-app_dir: /opt/kente-order-service
-config_dir: /etc/kente
+# order_service_ prefix matches the role's namespaced variables.
+order_service_app_user: kente
+order_service_app_group: kente
+order_service_app_dir: /opt/kente-order-service
+order_service_config_dir: /etc/kente

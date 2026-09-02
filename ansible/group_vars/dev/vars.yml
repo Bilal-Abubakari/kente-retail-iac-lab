@@ -2,11 +2,11 @@
 # Non-secret, dev-specific configuration. The one secret (the DB password) is in
 # vault.yml alongside this file, encrypted. This file references it by name only.
 
-env_name: dev
-app_port: 8080 # must match the Terraform app_port variable for this workspace
+order_service_env_name: dev
+order_service_app_port: 8080 # must match the Terraform app_port for this workspace
 
-db_host: dev-db.internal.kente.local
-db_name: kente_orders_dev
-db_user: kente_dev
-# db_password is provided by vault_db_password in this group's vault.yml
-db_password: "{{ vault_db_password }}"
+order_service_db_host: dev-db.internal.kente.local
+order_service_db_name: kente_orders_dev
+order_service_db_user: kente_dev
+# The password comes from vault_db_password in this group's encrypted vault.yml.
+order_service_db_password: "{{ vault_db_password }}"

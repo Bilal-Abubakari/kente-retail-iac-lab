@@ -1,22 +1,22 @@
 # {{ ansible_managed }}
 [Unit]
-Description=Kente Retail order-service ({{ env_name }})
+Description=Kente Retail order-service ({{ order_service_env_name }})
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-User={{ app_user }}
-Group={{ app_group }}
-EnvironmentFile={{ config_dir }}/order-service.env
-ExecStart=/usr/bin/python3 {{ app_dir }}/app.py
+User={{ order_service_app_user }}
+Group={{ order_service_app_group }}
+EnvironmentFile={{ order_service_config_dir }}/order-service.env
+ExecStart=/usr/bin/python3 {{ order_service_app_dir }}/app.py
 Restart=on-failure
 RestartSec=3
 # Hardening: the service can't write outside its own dirs and can't escalate.
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths={{ app_dir }}
+ReadWritePaths={{ order_service_app_dir }}
 
 [Install]
 WantedBy=multi-user.target

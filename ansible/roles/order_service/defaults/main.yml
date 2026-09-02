@@ -3,15 +3,18 @@
 # Everything the role needs has a default here, so the role is runnable on its
 # own and self-documents its inputs.
 
-app_user: kente
-app_group: kente
-app_dir: /opt/kente-order-service
-config_dir: /etc/kente
-app_port: 8080
+# Vars are prefixed order_service_ so they can't collide with another role's
+# vars in the global namespace (ansible-lint production profile: var-naming).
+order_service_app_user: kente
+order_service_app_group: kente
+order_service_app_dir: /opt/kente-order-service
+order_service_config_dir: /etc/kente
+order_service_app_port: 8080
 
-env_name: unknown
-db_host: localhost
-db_name: kente_orders
-db_user: kente
-# db_password intentionally has NO default — it must come from Vault. If it is
-# unset the template fails loudly rather than shipping a blank credential.
+order_service_env_name: unknown
+order_service_db_host: localhost
+order_service_db_name: kente_orders
+order_service_db_user: kente
+# order_service_db_password intentionally has NO default — it must come from
+# Vault. If it is unset the template fails loudly rather than shipping a blank
+# credential.

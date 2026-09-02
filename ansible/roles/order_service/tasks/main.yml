@@ -5,13 +5,13 @@
 - name: Fail early if the DB password was not supplied by Vault
   ansible.builtin.assert:
     that:
-      - db_password is defined
-      - db_password | length > 0
-      - "'CHANGEME' not in db_password"
+      - order_service_db_password is defined
+      - order_service_db_password | length > 0
+      - "'CHANGEME' not in order_service_db_password"
     fail_msg: >-
-      db_password is missing or still a placeholder. It must come from an
-      encrypted group_vars/<env>/vault.yml. Did you run ansible-vault encrypt
-      and pass --vault-password-file / .vault_pass?
+      order_service_db_password is missing or still a placeholder. It must come
+      from an encrypted group_vars/<env>/vault.yml. Did you run ansible-vault
+      encrypt and is the vault password file readable?
     quiet: true
 
 - name: Ensure Python 3 is present (order-service runtime)
@@ -23,17 +23,17 @@
 - name: Create the order-service system group
   become: true
   ansible.builtin.group:
-    name: "{{ app_group }}"
+    name: "{{ order_service_app_group }}"
     system: true
 
 - name: Create the order-service system user
   become: true
   ansible.builtin.user:
-    name: "{{ app_user }}"
-    group: "{{ app_group }}"
+    name: "{{ order_service_app_user }}"
+    group: "{{ order_service_app_group }}"
     system: true
     shell: /sbin/nologin
-    home: "{{ app_dir }}"
+    home: "{{ order_service_app_dir }}"
     create_home: false
 
 - name: Create application and config directories
@@ -42,19 +42,19 @@
     path: "{{ item.path }}"
     state: directory
     owner: "{{ item.owner }}"
-    group: "{{ app_group }}"
+    group: "{{ order_service_app_group }}"
     mode: "{{ item.mode }}"
   loop:
-    - { path: "{{ app_dir }}", owner: "{{ app_user }}", mode: "0755" }
-    - { path: "{{ config_dir }}", owner: root, mode: "0750" }
+    - { path: "{{ order_service_app_dir }}", owner: "{{ order_service_app_user }}", mode: "0755" }
+    - { path: "{{ order_service_config_dir }}", owner: root, mode: "0750" }
 
 - name: Deploy the order-service application
   become: true
   ansible.builtin.copy:
     src: app.py
-    dest: "{{ app_dir }}/app.py"
-    owner: "{{ app_user }}"
-    group: "{{ app_group }}"
+    dest: "{{ order_service_app_dir }}/app.py"
+    owner: "{{ order_service_app_user }}"
+    group: "{{ order_service_app_group }}"
     mode: "0755"
   notify: restart order-service
 
@@ -62,9 +62,9 @@
   become: true
   ansible.builtin.template:
     src: order-service.env.j2
-    dest: "{{ config_dir }}/order-service.env"
-    owner: "{{ app_user }}"
-    group: "{{ app_group }}"
+    dest: "{{ order_service_config_dir }}/order-service.env"
+    owner: "{{ order_service_app_user }}"
+    group: "{{ order_service_app_group }}"
     # 0640: readable by the service user, not world-readable — the secret lives here.
     mode: "0640"
   no_log: true # never echo the rendered secret into the run log
@@ -95,12 +95,12 @@
 - name: Wait for the order-service to answer on its port
   ansible.builtin.wait_for:
     host: 127.0.0.1
-    port: "{{ app_port }}"
+    port: "{{ order_service_app_port }}"
     timeout: 30
 
 - name: Confirm the health endpoint reports this environment
   ansible.builtin.uri:
-    url: "http://127.0.0.1:{{ app_port }}/health"
+    url: "http://127.0.0.1:{{ order_service_app_port }}/health"
     return_content: true
-  register: health
-  failed_when: health.json.environment != env_name
+  register: order_service_health
+  failed_when: order_service_health.json.environment != order_service_env_name

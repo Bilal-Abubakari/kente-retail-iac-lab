@@ -10,8 +10,10 @@ galaxy_info:
   license: MIT
   min_ansible_version: "2.14"
   platforms:
+    # Amazon Linux 2023 is the target; the galaxy schema only accepts "all" here
+    # (it predates AL2023's version string), so "all" is the schema-valid value.
     - name: Amazon
       versions:
-        - "2023"
+        - all
 
 dependencies: []
