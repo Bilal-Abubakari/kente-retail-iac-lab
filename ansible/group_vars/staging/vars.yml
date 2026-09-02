@@ -1,0 +1,13 @@
+---
+# Non-secret, staging-specific configuration. Note the values genuinely differ
+# from dev (different DB host, name, user) — this is the "different config per
+# environment without copy-pasting playbook logic" the spec asks for: same role,
+# different group_vars.
+
+env_name: staging
+app_port: 8080 # must match the Terraform app_port variable for this workspace
+
+db_host: staging-db.internal.kente.local
+db_name: kente_orders_staging
+db_user: kente_staging
+db_password: "{{ vault_db_password }}"

@@ -1,0 +1,17 @@
+---
+# Role defaults — lowest precedence, so group_vars override any of these.
+# Everything the role needs has a default here, so the role is runnable on its
+# own and self-documents its inputs.
+
+app_user: kente
+app_group: kente
+app_dir: /opt/kente-order-service
+config_dir: /etc/kente
+app_port: 8080
+
+env_name: unknown
+db_host: localhost
+db_name: kente_orders
+db_user: kente
+# db_password intentionally has NO default — it must come from Vault. If it is
+# unset the template fails loudly rather than shipping a blank credential.

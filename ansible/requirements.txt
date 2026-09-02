@@ -1,0 +1,5 @@
+# Control-node dependencies. Install inside WSL (Ansible does not run natively on
+# Windows). ansible-core brings ansible-playbook, ansible-vault, and ansible-lint
+# is added for the pre-commit hook / value-add feature.
+ansible-core>=2.16,<2.18
+ansible-lint>=24.0

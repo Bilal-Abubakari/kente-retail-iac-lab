@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  role_name: order_service
+  author: Bilal Abubakari
+  description: >-
+    Installs and configures the Kente Retail order-service on the web tier:
+    a dedicated system user, the application, a per-environment config file
+    (with the DB credential sourced from Ansible Vault), and a managed systemd
+    service. Idempotent — re-running changes nothing once converged.
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Amazon
+      versions:
+        - "2023"
+
+dependencies: []

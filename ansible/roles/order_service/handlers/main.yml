@@ -1,0 +1,13 @@
+---
+- name: Reload systemd
+  become: true
+  ansible.builtin.systemd:
+    daemon_reload: true
+  listen: reload systemd
+
+- name: Restart order-service
+  become: true
+  ansible.builtin.service:
+    name: order-service
+    state: restarted
+  listen: restart order-service

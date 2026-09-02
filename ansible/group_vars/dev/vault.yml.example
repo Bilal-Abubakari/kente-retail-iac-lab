@@ -1,0 +1,13 @@
+---
+# TEMPLATE — NOT A REAL SECRET, safe to commit.
+#
+# To create the real, encrypted vault for dev:
+#   1. cp vault.yml.example vault.yml
+#   2. edit vault.yml, set a real password
+#   3. ansible-vault encrypt group_vars/dev/vault.yml
+#
+# After step 3, group_vars/dev/vault.yml begins with "$ANSIBLE_VAULT;1.1;AES256"
+# and is safe to commit. The pre-commit hook (scripts/pre-commit) refuses to
+# commit it if it is still plaintext. The vault password lives only in
+# ansible/.vault_pass, which is gitignored.
+vault_db_password: "CHANGEME-dev-placeholder-not-real"

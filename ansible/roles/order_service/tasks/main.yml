@@ -1,0 +1,106 @@
+---
+# Every task is idempotent: a second run reports zero changes. State is declared
+# (present/directory/started), never imperatively poked.
+
+- name: Fail early if the DB password was not supplied by Vault
+  ansible.builtin.assert:
+    that:
+      - db_password is defined
+      - db_password | length > 0
+      - "'CHANGEME' not in db_password"
+    fail_msg: >-
+      db_password is missing or still a placeholder. It must come from an
+      encrypted group_vars/<env>/vault.yml. Did you run ansible-vault encrypt
+      and pass --vault-password-file / .vault_pass?
+    quiet: true
+
+- name: Ensure Python 3 is present (order-service runtime)
+  become: true
+  ansible.builtin.dnf:
+    name: python3
+    state: present
+
+- name: Create the order-service system group
+  become: true
+  ansible.builtin.group:
+    name: "{{ app_group }}"
+    system: true
+
+- name: Create the order-service system user
+  become: true
+  ansible.builtin.user:
+    name: "{{ app_user }}"
+    group: "{{ app_group }}"
+    system: true
+    shell: /sbin/nologin
+    home: "{{ app_dir }}"
+    create_home: false
+
+- name: Create application and config directories
+  become: true
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ app_group }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ app_dir }}", owner: "{{ app_user }}", mode: "0755" }
+    - { path: "{{ config_dir }}", owner: root, mode: "0750" }
+
+- name: Deploy the order-service application
+  become: true
+  ansible.builtin.copy:
+    src: app.py
+    dest: "{{ app_dir }}/app.py"
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: "0755"
+  notify: restart order-service
+
+- name: Deploy the per-environment config (holds the Vault-sourced DB password)
+  become: true
+  ansible.builtin.template:
+    src: order-service.env.j2
+    dest: "{{ config_dir }}/order-service.env"
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    # 0640: readable by the service user, not world-readable — the secret lives here.
+    mode: "0640"
+  no_log: true # never echo the rendered secret into the run log
+  notify: restart order-service
+
+- name: Install the systemd unit
+  become: true
+  ansible.builtin.template:
+    src: order-service.service.j2
+    dest: /etc/systemd/system/order-service.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - reload systemd
+    - restart order-service
+
+- name: Ensure order-service is enabled and running
+  become: true
+  ansible.builtin.systemd:
+    name: order-service
+    enabled: true
+    state: started
+
+- name: Flush handlers so any restart happens before the health check
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for the order-service to answer on its port
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ app_port }}"
+    timeout: 30
+
+- name: Confirm the health endpoint reports this environment
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ app_port }}/health"
+    return_content: true
+  register: health
+  failed_when: health.json.environment != env_name

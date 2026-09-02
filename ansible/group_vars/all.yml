@@ -1,0 +1,14 @@
+---
+# Applies to every host in every environment. Only things that are genuinely the
+# same across dev and staging live here; anything that differs lives in the
+# per-environment group_vars/dev|staging files.
+
+ansible_user: ec2-user # AL2023 default login
+ansible_ssh_private_key_file: "~/.ssh/kente_lab"
+ansible_python_interpreter: /usr/bin/python3
+
+# Where the order-service is laid down. Same layout in every environment.
+app_user: kente
+app_group: kente
+app_dir: /opt/kente-order-service
+config_dir: /etc/kente

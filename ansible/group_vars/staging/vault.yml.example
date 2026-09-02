@@ -1,0 +1,6 @@
+---
+# TEMPLATE — NOT A REAL SECRET, safe to commit. See dev/vault.yml.example for
+# the full procedure. Staging gets its OWN distinct password, so a leaked dev
+# credential can never open the staging database.
+#   ansible-vault encrypt group_vars/staging/vault.yml
+vault_db_password: "CHANGEME-staging-placeholder-not-real"

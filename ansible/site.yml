@@ -1,0 +1,17 @@
+---
+# Configures the web tier for whichever environment(s) you target. The hosts and
+# their IPs come entirely from the Terraform-generated inventory; the per-env
+# values come from group_vars. There is no host-specific logic here — the same
+# play configures dev and staging, differing only by group_vars.
+#
+# Examples:
+#   ansible-playbook site.yml                 # both dev and staging
+#   ansible-playbook site.yml --limit dev     # dev only
+#   ansible-playbook site.yml --limit staging # staging only
+#
+# The vault password is read from ansible/.vault_pass (see ansible.cfg).
+- name: Configure the Kente Retail web tier
+  hosts: webservers
+  gather_facts: true
+  roles:
+    - order_service
