@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+# Kente Retail pre-commit guard — the value-add feature.
+#
+# Directly targets the incident that started this whole engagement: a secret
+# reached git history. It runs on the STAGED content only, before the commit is
+# written, and blocks it if anything below fails. Every check degrades
+# gracefully if its tool isn't installed, EXCEPT the secret checks, which are
+# pure bash and always run — the leak guard must never be silently skipped.
+#
+# Install:  bash scripts/install-hooks.sh
+set -uo pipefail
+
+RED=$'\033[31m'; GRN=$'\033[32m'; YLW=$'\033[33m'; NC=$'\033[0m'
+fail=0
+note() { printf '%s\n' "$*"; }
+problem() { printf '%s%s%s\n' "$RED" "$*" "$NC"; fail=1; }
+
+# Files staged for this commit (added/copied/modified), NUL-safe.
+mapfile -d '' -t staged < <(git diff --cached --name-only --diff-filter=ACM -z)
+[[ ${#staged[@]} -eq 0 ]] && exit 0
+
+# ---------------------------------------------------------------------------
+# 1. Hard secret scan (always runs) — AWS keys and private keys in staged blobs
+# ---------------------------------------------------------------------------
+for f in "${staged[@]}"; do
+  [[ -f "$f" ]] || continue
+  blob="$(git show ":$f" 2>/dev/null)" || continue
+
+  if grep -Eq '(AKIA|ASIA)[A-Z0-9]{16}' <<<"$blob"; then
+    problem "SECRET: AWS access key id in $f"
+  fi
+  if grep -Eq 'aws_secret_access_key[[:space:]]*=[[:space:]]*[A-Za-z0-9/+]{40}' <<<"$blob"; then
+    problem "SECRET: AWS secret access key in $f"
+  fi
+  if grep -q 'BEGIN [A-Z ]*PRIVATE KEY' <<<"$blob"; then
+    problem "SECRET: private key material in $f"
+  fi
+done
+
+# ---------------------------------------------------------------------------
+# 2. Vault guard (always runs) — a committed vault.yml MUST be encrypted
+# ---------------------------------------------------------------------------
+for f in "${staged[@]}"; do
+  case "$f" in
+    */vault.yml|*/vault.yaml|*/vault/*.yml)
+      first="$(git show ":$f" 2>/dev/null | head -1)"
+      if [[ "$first" != '$ANSIBLE_VAULT'* ]]; then
+        problem "PLAINTEXT VAULT: $f is not ansible-vault encrypted. Run: ansible-vault encrypt $f"
+      fi
+      ;;
+  esac
+done
+
+# ---------------------------------------------------------------------------
+# 3. Terraform fmt (skipped if terraform absent)
+# ---------------------------------------------------------------------------
+if command -v terraform >/dev/null 2>&1; then
+  if printf '%s\0' "${staged[@]}" | grep -zq '\.tf$'; then
+    if ! terraform fmt -check -recursive >/dev/null 2>&1; then
+      problem "TERRAFORM FMT: run 'terraform fmt -recursive' and re-stage"
+    fi
+  fi
+else
+  note "${YLW}skip:${NC} terraform not on PATH — fmt check skipped"
+fi
+
+# ---------------------------------------------------------------------------
+# 4. ansible-lint (skipped if absent)
+# ---------------------------------------------------------------------------
+if command -v ansible-lint >/dev/null 2>&1; then
+  if printf '%s\0' "${staged[@]}" | grep -zq '^ansible/'; then
+    if ! ansible-lint ansible/ >/dev/null 2>&1; then
+      problem "ANSIBLE-LINT: 'ansible-lint ansible/' reported issues"
+    fi
+  fi
+else
+  note "${YLW}skip:${NC} ansible-lint not on PATH — lint skipped"
+fi
+
+if [[ $fail -ne 0 ]]; then
+  printf '\n%sCommit blocked by pre-commit guard.%s Fix the above (or, only if you are certain, bypass with --no-verify).\n' "$RED" "$NC"
+  exit 1
+fi
+printf '%spre-commit guard passed%s\n' "$GRN" "$NC"
+exit 0
