@@ -3,7 +3,17 @@ variable "vpc_cidr" {
   type        = string
 }
 
-variable "project_tag" {
-  description = "Value for the Project tag on every resource this module creates."
+variable "allowed_ssh_cidr" {
+  description = "CIDR permitted to SSH in (port 22)."
   type        = string
+}
+
+variable "allowed_app_cidr" {
+  description = "CIDR permitted to reach the application port."
+  type        = string
+}
+
+variable "app_port" {
+  description = "TCP port the order-service listens on."
+  type        = number
 }

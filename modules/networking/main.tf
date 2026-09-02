@@ -1,7 +1,8 @@
 locals {
-  # A resource can't be named after the workspace that creates it before
-  # that workspace exists, so this only ever produces "default" until
-  # Terraform workspaces are actually in use.
+  # With workspaces actually in use now, this resolves to "dev" or "staging"
+  # (the root config guards against the default workspace). It is used only for
+  # the human-readable Name tags; Project and Environment come from the
+  # provider's default_tags.
   env_label = terraform.workspace
 }
 
@@ -11,9 +12,7 @@ resource "aws_vpc" "main" {
   enable_dns_hostnames = true
 
   tags = {
-    Name        = "kente-vpc-${local.env_label}"
-    Project     = var.project_tag
-    Environment = local.env_label
+    Name = "kente-vpc-${local.env_label}"
   }
 }
 
@@ -21,9 +20,7 @@ resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name        = "kente-igw-${local.env_label}"
-    Project     = var.project_tag
-    Environment = local.env_label
+    Name = "kente-igw-${local.env_label}"
   }
 }
 
@@ -33,9 +30,7 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name        = "kente-public-subnet-${local.env_label}"
-    Project     = var.project_tag
-    Environment = local.env_label
+    Name = "kente-public-subnet-${local.env_label}"
   }
 }
 
@@ -48,9 +43,7 @@ resource "aws_route_table" "public" {
   }
 
   tags = {
-    Name        = "kente-public-rt-${local.env_label}"
-    Project     = var.project_tag
-    Environment = local.env_label
+    Name = "kente-public-rt-${local.env_label}"
   }
 }
 
@@ -69,15 +62,17 @@ resource "aws_security_group" "web" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # tighten to your admin CIDR in a real deployment
+    # Locked to the machine Ansible runs from — no longer 0.0.0.0/0. The root
+    # variable validation refuses to let this be the whole internet.
+    cidr_blocks = [var.allowed_ssh_cidr]
   }
 
   ingress {
     description = "Kente Retail order-service"
-    from_port   = 8080
-    to_port     = 8080
+    from_port   = var.app_port
+    to_port     = var.app_port
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.allowed_app_cidr]
   }
 
   egress {
@@ -88,8 +83,6 @@ resource "aws_security_group" "web" {
   }
 
   tags = {
-    Name        = "kente-web-sg-${local.env_label}"
-    Project     = var.project_tag
-    Environment = local.env_label
+    Name = "kente-web-sg-${local.env_label}"
   }
 }
