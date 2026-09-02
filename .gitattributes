@@ -1,0 +1,11 @@
+# Windows checkouts default to core.autocrlf=true, which would rewrite these to
+# CRLF. That breaks two things: bash refuses scripts with \r line endings when
+# they run in WSL, and ansible-vault can fail to decrypt a vault whose bytes were
+# altered. Pin the line endings so a clone on any OS behaves identically.
+
+*.sh          text eol=lf
+*.py          text eol=lf
+*.j2          text eol=lf
+
+# Encrypted Ansible Vault files: never apply EOL conversion or text diffing.
+**/vault.yml  -text
