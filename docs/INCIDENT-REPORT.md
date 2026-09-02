@@ -109,13 +109,45 @@ understood the failure rather than flailing at it.
 
 ---
 
-### Live write-up (complete during the walkthrough)
+### Live write-up (the incident, as it actually happened)
 
-- **What happened:** _____________________________________________
-- **How it surfaced (exact error / symptom):** ___________________
-- **What I did, in order:** _______________________________________
-- **What I deliberately did NOT do, and why:** ___________________
-  _(e.g. "did not `force-unlock` because the other apply was still running";
-  "did not hand-edit state — rolled the S3 version back instead")_
-- **How I proved the environment was healthy again:** ____________
-- **Prevention / follow-up:** _____________________________________
+- **What happened:** A **lock conflict** on the shared `staging` state. Two
+  `terraform apply` operations ran against the same workspace at once; the first
+  acquired the DynamoDB lock, so the second was correctly refused.
+- **How it surfaced (exact error / symptom):**
+  ```
+  Error: Error acquiring the state lock
+  Error message: operation error DynamoDB: PutItem, ...
+    ConditionalCheckFailedException: The conditional request failed
+  Lock Info:
+    ID:        cbc9ed8a-1b17-d301-7d90-b2d1add68a2c
+    Path:      kente-retail-tfstate-<ACCOUNT_ID>/env:/staging/kente-retail/web-tier.tfstate
+    Operation: OperationTypeApply
+    Who:       AzureAD\<redacted-user>@<redacted-host>
+    Created:   2026-09-02 10:51:29 UTC
+  ```
+  The `ConditionalCheckFailedException` is the lock working exactly as designed:
+  the lock row already existed, so DynamoDB's conditional `PutItem` refused a
+  second writer.
+- **What I did, in order:** (1) Read the lock record — it named a live
+  `OperationTypeApply` started seconds earlier by my own second session. (2) Asked
+  the one question that matters: *is the holder still running?* It was. (3) Let the
+  holding apply run to completion so it released the lock cleanly. (4) Re-ran
+  `terraform plan`, which acquired the now-free lock and reported **"No changes."**
+- **What I deliberately did NOT do, and why:** I did **not** `terraform
+  force-unlock cbc9ed8a-...`. The lock was held by an apply that was *still
+  running*; force-unlocking a live apply is precisely how you corrupt shared
+  state. Force-unlock is only for a lock whose process is genuinely dead. I also
+  did not add `-lock=false` to "make it go away" — that disables the very safety
+  that was doing its job.
+- **How I proved the environment was healthy again:** `terraform plan` against
+  `staging` returned *"No changes. Your infrastructure matches the configuration."*
+  — a clean plan is the proof state and reality agree. (Had state looked wrong, the
+  next resort was rolling the S3 object back to its prior version — the bucket is
+  versioned — never a hand-edit of the JSON.)
+- **Prevention / follow-up:** The lock did its job, so no fix was needed. Going
+  forward: don't run two applies on one workspace; the value-add promotion script
+  (Proposal 2) serialises staging changes behind an explicit gate. Note also that
+  Terraform 1.10+ offers S3-native locking (`use_lockfile`), which would let us
+  retire the DynamoDB table entirely — deliberately kept here because the brief
+  specifies an S3 **+ DynamoDB** backend.
