@@ -1,19 +1,45 @@
+# --- Terraform ---------------------------------------------------------------
 .terraform/
-.terraform.lock.hcl
+# NOTE: unlike the starter, .terraform.lock.hcl IS committed (HashiCorp's own
+# recommendation) so every environment resolves identical provider versions.
 *.tfstate
 *.tfstate.*
-# Exception: this one is deliberately checked in -- see monitoring.tf and
-# the README for why. Everything else's state stays out of git as normal.
-!legacy-networking-state/terraform.tfstate
 crash.log
 crash.*.log
+
+# Variable files can hold environment-specific values; keep them local.
 *.tfvars
 *.tfvars.json
+
+# Backend config carries the account-specific bucket name — kept out of git.
+backend.hcl
+
 override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
 .terraformrc
 terraform.rc
+
+# The legacy-networking-state exception from the starter is GONE on purpose:
+# that checked-in state file was the source of the planted defect. It has been
+# removed from the tree and from tracking. See monitoring.tf / INCIDENT-REPORT.
+
+# --- Keys & secrets ----------------------------------------------------------
 *.pem
 *.ppk
+# SSH private keys must never be committed; only the .pub is referenced by TF.
+id_rsa
+id_ed25519
+kente_lab
+kente_lab.pem
+
+# Ansible Vault password file — the key that decrypts the vault. NEVER commit.
+.vault_pass
+.vault-pass
+ansible/.vault_pass
+
+# --- Ansible -----------------------------------------------------------------
+*.retry
+# Inventory is generated from Terraform outputs at run time (contains live IPs).
+ansible/inventory/hosts.generated.*
